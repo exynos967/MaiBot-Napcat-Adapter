@@ -487,7 +487,7 @@ class MessageHandler:
 
     async def handle_json_message(self, raw_message: dict) -> Seg | None:
         """
-        处理JSON卡片消息(小程序、分享等)
+        处理JSON卡片消息(小程序、分享、群公告等)
         Parameters:
             raw_message: dict: 原始消息
         Returns:
@@ -501,8 +501,27 @@ class MessageHandler:
             return None
         
         try:
-            # 尝试解析JSON获取prompt提示信息
+            # 尝试解析JSON获取详细信息
             parsed_json = json.loads(json_data)
+            app = parsed_json.get("app", "")
+            
+            # 检查是否为群公告
+            if app == "com.tencent.mannounce":
+                meta = parsed_json.get("meta", {})
+                mannounce = meta.get("mannounce", {})
+                title = mannounce.get("title", "")
+                text = mannounce.get("text", "")
+                
+                # 构建群公告文本
+                announce_text = "[群公告]"
+                if title:
+                    announce_text += f"\n标题: {title}"
+                if text:
+                    announce_text += f"\n内容: {text}"
+                
+                return Seg(type="text", data=announce_text)
+            
+            # 其他卡片消息使用prompt字段
             prompt = parsed_json.get("prompt", "[卡片消息]")
             return Seg(type="text", data=prompt)
         except json.JSONDecodeError:
